@@ -1,0 +1,82 @@
+[project]
+name = 'ppod'
+version = '0.1'
+description = 'Pew Pew or Die.'
+readme = 'README.rst'
+authors = [
+  {name = 'Norman Harman', email='njharman@gmail.com'},
+  ]
+requires-python = '>=3.12'
+dependencies = [
+  'pygame-ce',
+  # 'pygbag', # run in browser
+  ]
+
+[project.scripts]
+#gma = 'main'
+
+[project.optional-dependencies]
+# pip install .[test,dev]
+test = [
+  'ruff',
+  'pytest',
+  'pytest-cov',
+  'pytest-ruff',
+  ]
+dev = [
+  'icecream',
+  'pip-audit',
+  'pre-commit',
+  ]
+
+[build-system]
+requires = ['setuptools>=68.0']
+build-backend = 'setuptools.build_meta'
+
+[tool.pytest.ini_options]
+addopts = '--ruff -p no:logging'
+norecursedirs = '.git .cache .venv build dist *.egg *.egg-info __pycache__'
+
+[tool.ruff]
+line-length = 180
+target-version = 'py312'
+include = ['src/*py', 'tests/*py']
+
+[tool.ruff.format]
+quote-style = 'single'
+
+[tool.ruff.lint]
+select = [
+  'F',  # pyflakes
+  'E',  # pycodestyle
+  'W',  # pycodestyle
+  #'C90',  # mccabe
+  'I',  # isort
+  #'N',  # pep8-naming
+  #'D',  # pydocstyle
+  'UP',  # pyupgrade
+  #'PL',  # Pylint
+  'TRY',  # tryceratops
+  'FLY',  # flynt
+  #'PERF', # perflint
+  'RUF',  # Ruff rules
+  'PTH',  # flake8 use pathlib
+  #'ARG',  # flake8 unused arguments
+  'G',  # flake8-logging-format
+  #'B',  # flake8-bugbear
+  #'C4',  # flake8-comprehensions
+  #'A',  # flake8-builtins
+  #'BLE', # flake8-blind-except
+  ]
+ignore = [
+  'TRY003',  # Avoid long messages outside of exception class
+  'TRY004',  # Use TypeError instead of ValueError
+  'TRY301',  # Abstract raise garbage
+  'RUF012',  # Mutable classvars should using typing
+  'G004',  # Logging format string should not use f-string
+  'E731',  # Do not assign a lambda expression, use a def
+  # 'D100', 'D101', 'D102', 'D103', 'D105', 'D107'  # Missing docstrings
+  ]
+
+[tool.ruff.lint.per-file-ignores]
+'__init__.py' = ['F401']
