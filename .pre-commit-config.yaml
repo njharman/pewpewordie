@@ -5,11 +5,13 @@ repos:
   rev: v4.6.0
   hooks:
     - id: check-added-large-files
+    # - id: check-ast  # file parses as valid Python
     - id: check-case-conflict
     - id: check-executables-have-shebangs
     - id: check-json
-    - id: check-merge-conflict
+    - id: check-merge-conflict  # no <<<<
     - id: check-shebang-scripts-are-executable
+    - id: check-symlinks
     - id: check-toml
     - id: check-yaml
     - id: debug-statements
@@ -17,6 +19,8 @@ repos:
     - id: detect-private-key
     - id: double-quote-string-fixer
     - id: end-of-file-fixer
+    - id: mixed-line-ending
+    - id: name-tests-test
     - id: trailing-whitespace
 - repo: https://github.com/pypa/pip-audit
   rev: v2.7.2

@@ -45,38 +45,65 @@ include = ['src/*py', 'tests/*py']
 [tool.ruff.format]
 quote-style = 'single'
 
-[tool.ruff.lint]
-select = [
-  'F',  # pyflakes
-  'E',  # pycodestyle
-  'W',  # pycodestyle
-  #'C90',  # mccabe
-  'I',  # isort
-  #'N',  # pep8-naming
-  #'D',  # pydocstyle
-  'UP',  # pyupgrade
-  #'PL',  # Pylint
-  'TRY',  # tryceratops
-  'FLY',  # flynt
-  #'PERF', # perflint
-  'RUF',  # Ruff rules
-  'PTH',  # flake8 use pathlib
-  #'ARG',  # flake8 unused arguments
-  'G',  # flake8-logging-format
-  #'B',  # flake8-bugbear
-  #'C4',  # flake8-comprehensions
-  #'A',  # flake8-builtins
-  #'BLE', # flake8-blind-except
-  ]
-ignore = [
-  'TRY003',  # Avoid long messages outside of exception class
-  'TRY004',  # Use TypeError instead of ValueError
-  'TRY301',  # Abstract raise garbage
-  'RUF012',  # Mutable classvars should using typing
-  'G004',  # Logging format string should not use f-string
-  'E731',  # Do not assign a lambda expression, use a def
-  # 'D100', 'D101', 'D102', 'D103', 'D105', 'D107'  # Missing docstrings
-  ]
+[tool.ruff.lint.flake8-bugbear]
+# Allow B008 default arguments
+extend-immutable-calls = ['itertools.cycle', ]
 
 [tool.ruff.lint.per-file-ignores]
-'__init__.py' = ['F401']
+'__init__.py' = ['F401']  # Unused import
+
+[tool.ruff.lint]
+ignore = [
+  'C408',  # Unnecessary dict/list call
+  'E731',  # Do not assign a lambda expression, use a def
+  'G004', # Logging format string should not use f-string
+  'RET503', # No explicit return None (all the other rules are about removing unnecessary things like this)
+  'RUF012', # Mutable class attributes should be annotated with typing.ClassVar
+  'S311', # Standard pseudo-random generators are not suitable for security/cryptographic purposes
+  'SIM108', # don't like ternary operator
+  'TD002', # todo missing author
+  'ERA001', 'T201', 'TD', 'FIX002'  # comment code, prints, todos are lax during development
+  ]
+select = [
+  'A',  # flake8-builtins
+  'ASYNC', # https://docs.astral.sh/ruff/rules/#flake8-async-async
+  'B',  # flake8-bugbear
+  'BLE', # flake8-blind-except
+  'C4',  # unnecessary comprehensions, map()
+  'COM',  # flake8-commas
+  'DTZ', # flake8-datetimez
+  'E',  # pycodestyle
+  'ERA',  # No commented out code
+  'EXE', # flake8-executable
+  'F',  # pyflakes
+  'FIX', # (like TD but different https://github.com/tommilligan/flake8-fixme)
+  'FLY',  # flynt
+  'G',  # flake8-logging-format
+  'I',  # isort
+  'ICN', # https://github.com/joaopalmeiro/flake8-import-conventions
+  'ISC', # https://pypi.org/project/flake8-implicit-str-concat/
+  'LOG', # flake8-logging
+  'PERF', # perflint
+  'PIE', # https://pypi.org/project/flake8-pie/
+  'PLC',  # Pylint conventions
+  'PLE',  # Pylint error
+  'PLW',  # Pylint warnings
+  'PT',  # https://pypi.org/project/flake8-pytest-style/
+  'PTH',  # flake8 use pathlib
+  'RET', # https://pypi.org/project/flake8-return/
+  'RUF',  # Ruff rules
+  'S',  # https://docs.astral.sh/ruff/rules/#flake8-bandit-s
+  'SIM',  # https://pypi.org/project/flake8-simplify/
+  'T',  # flake8-debugger
+  'TD',  # https://github.com/orsinium-labs/flake8-todos/
+  'TRY',  # tryceratops
+  'UP',  # pyupgrade
+  'W',  # pycodestyle
+  #'ARG',  # flake8 unused arguments (not really helpful, unused func args are common and ok)
+  #'D',  # pydocstyle (too much)
+  #'N',  # pep8-naming (too opinionated)
+  #'NPY', # numpy
+  #'PD', # pandas
+  #'PL',  # Full Pylint (too much)
+  #'PLR',  # Pylint refactor (too much/too opinionated)
+  ]

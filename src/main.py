@@ -8,7 +8,6 @@ import sys
 
 import constants
 import pygame
-from icecream import ic
 
 # TODO:
 # current score in top right
@@ -25,6 +24,10 @@ from icecream import ic
 # Terrorangles triable baddies
 # Diamonds baddies
 # New Bawler types
+# endless screen
+# nebula background
+# Camera that follows player at edges
+# off-screen spawn
 
 log = logging.getLogger('PPoD')
 
@@ -77,15 +80,15 @@ def rotated_8xarray(image):
 class Config:
     # 4:3 aspect ratio 400x300, 800x600, 960x720, 1024x768, 1280x960, 1400x1050, 1440x1080, 1600x1200, 1856x1392, 1920x1440, 2048x1536
     # 16:9 aspect ratio 640x360, 1024x576, 1152x648, 1280x720 (HD), 1366x768, 1600x900, 1920x1080 (FHD), 2560x1440 (QHD), 3840x2160 (4K), 7680x4320 (8K)
-    SIZES = [(640, 360, 1), (1280, 720, 2), (1920, 1080, 3), (3840, 2160, 6)]
-    SIZES = [(960, 720, 1), (1920, 1440, 2)]
+    #SIZES = [(640, 360, 1), (1280, 720, 2), (1920, 1080, 3), (3840, 2160, 6)]
+    #SIZES = [(960, 720, 1), (1920, 1440, 2)]
     SIZES = [(640, 480, 1), (1280, 960, 2), (1920, 1440, 3)]
 
     def __init__(self):
         self.resolution = 1
         self.fullscreen = False
-        self.sound = 0.0
-        self.music = 0.0
+        self.sound = 0.2
+        self.music = 0.7
 
     @property
     def music(self):
@@ -113,7 +116,6 @@ class Timer:
     def __init__(self, duration):
         """@param duration: milliseconds or iterable of milliseconds."""
         if isinstance(duration, int | float):
-            print('int')
             duration = itertools.repeat(duration)
         self.duration = duration
         self.timer = 0
@@ -174,7 +176,6 @@ class PlayerSprite(pygame.sprite.Sprite):
         self.sound_hit.play(0, 0, 0)
         self.health -= damage
         if self.health <= 0:
-            print('Boom! You are dead.')
             pygame.event.post(pygame.event.Event(constants.DEAD))
             self.kill()
 
@@ -299,7 +300,7 @@ class PewPewCannon:
                     (17 * scale, 7 * scale),
                     (17 * scale, 7 * scale),
                 ),
-            )
+            ),
         )
         speed *= scale  # of projectile
         self._dv = [  # dx, dy of projectile for each facing
@@ -423,10 +424,10 @@ class BawlerSpawner:
     def _make_variations(self, scale):
         variations = list()
         explosion = lambda x, y: StaticAnimation(self.explosion_group, self.explosion_animation.copy(), x, y)
-        for radius in (4, 4, 6, 6, 8):
-            health = radius // 4
-            damage = ('impact', radius // 2)
-            radius *= scale
+        for power in (4, 4, 6, 6, 8):
+            health = power // 4
+            damage = ('impact', power // 2)
+            radius = power * scale
             dx = dy = abs((10 - radius) // 2) * 10 * scale
             image = pygame.Surface((radius * 2, radius * 2), flags=pygame.SRCALPHA).convert_alpha()
             rect = image.get_rect()
@@ -519,9 +520,8 @@ class BoundsSpawner:
             yield x, y
 
     def spawn(self, count=5):
-        for i in range(count):
-            x, y = next(self._xy())
-            yield self.sprite(x, y)
+        for _ in range(count):
+            yield self.sprite(*next(self._xy()))
 
 
 class BufferBoundsSpawner(BoundsSpawner):
@@ -590,8 +590,8 @@ class BaseScreen:
     def update(self, timedelta):
         self.sprites.update(timedelta)
 
-    def draw(self, screen):
-        self.sprites.draw(screen)
+    def draw(self, display):
+        self.sprites.draw(display)
 
 
 class TitleScreen(BaseScreen):
@@ -600,7 +600,9 @@ class TitleScreen(BaseScreen):
     def __init__(self, config):
         super().__init__(config)
         pygame.mixer.music.load(ASSETS_PATH / 'music' / 'title_song.mp3')
-        self.sprites.add(CenteredBackgroundSprite(config.display_rect, load_image('titlescreen.jpg', scaled=False)))
+        background = load_image('titlescreen.jpg', scaled=False)
+        background = pygame.transform.scale_by(background, config.height/background.get_height())
+        self.sprites.add(CenteredBackgroundSprite(config.display_rect, background))
         self.sprites.add(CenteredBackgroundSprite(config.display_rect, make_menu((('Start', 's'), ('Quit PPoD', 'q'), ('High Scores', 'h')), 160, 100, bg=(0, 0, 0, 0))))
         self.black = pygame.Surface(config.resolution, flags=pygame.SRCALPHA)
         self.black.fill((0, 0, 0, 0))
@@ -626,11 +628,11 @@ class TitleScreen(BaseScreen):
             pygame.mixer.music.play(-1)
         super().update(timedelta)
 
-    def draw(self, screen):
-        screen.fill((0, 0, 0))
-        super().draw(screen)
+    def draw(self, display):
+        display.fill((0, 0, 0))
+        super().draw(display)
         if self._fade_out:
-            screen.blit(self.black, (0, 0))
+            display.blit(self.black, (0, 0))
             return
 
 
@@ -724,23 +726,24 @@ class GameplayScreen:
         for baddie in pygame.sprite.spritecollide(self.ship, self.baddie, False):
             baddie.impact(self.ship)
 
-    def draw(self, screen):
-        screen.fill((0, 0, 0))
-        self.baddie.draw(screen)
-        self.player_projectiles.draw(screen)
-        self.player.draw(screen)
-        self.explosions.draw(screen)
+    def draw(self, display):
+        display.fill((0, 0, 0))
+        self.baddie.draw(display)
+        self.player_projectiles.draw(display)
+        self.player.draw(display)
+        self.explosions.draw(display)
         if self.paused:
-            self.pause_screen.draw(screen)
+            self.pause_display.draw(display)
 
 
 class Game:
     def __init__(self, config):
-        log.info('PPoD Start %s', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        log.info('PPoD Start %s', datetime.datetime.utc_now().strftime('%Y-%m-%d %H:%M:%S'))
         self.config = config
+        self._debug_font = pygame.font.Font(None, 16 * config.scale_factor)
 
         # make it global
-        global load_image, load_sheet, make_menu
+        global load_image, load_sheet, make_menu  # noqa: PLW0603
         load_image = self.load_image
         load_sheet = self.load_sheet
         make_menu = self.make_menu
@@ -765,7 +768,7 @@ class Game:
         SPACER = (h - 10) // len(entries) * scale
         font = pygame.font.Font(ASSETS_PATH / 'PixelifySans-Regular.ttf', 18 * scale)
         y = TOP
-        for entry, hotkeys in entries:
+        for entry, _ in entries:
             menu.blit(font.render(entry, False, fg), (LEFT, y))
             y += SPACER
         return menu
@@ -781,10 +784,10 @@ class Game:
                 image = image.convert()
             if scaled:
                 image = pygame.transform.scale_by(image, self.config.scale_factor)
-        except pygame.error as message:
+        except pygame.error as ex:
             log.exception(f'Cannot load image "{name}" from {fullname}')
             print(f'Cannot load image "{name}" from {fullname}')
-            raise SystemExit(message)
+            raise SystemExit(ex) from None
         return image
 
     def load_sheet(self, name, w, h):
@@ -802,6 +805,14 @@ class Game:
             images.append(image)
         return images
 
+    def debug_draw(self, display, debug_list):
+        fg = (255, 255, 255)
+        bg = None
+        for x in debug_list:
+            text = self._debug_font.render(x, False, fg, bg)
+            rect = text.get_rect()
+            display.blit(text, rect)
+
     def run(self):
         pg_clock = pygame.time.Clock()
         exit_to_desktop = False
@@ -813,9 +824,6 @@ class Game:
                     case pygame.event.Event(type=pygame.QUIT):
                         exit_to_desktop = True
                         break
-                    # Print FPS
-                    case pygame.event.Event(type=pygame.KEYDOWN, key=pygame.K_f):
-                        print('FPS:', pg_clock.get_fps())
                     case pygame.event.Event(type=constants.STARTPLAY):
                         self.screen = GameplayScreen(self.config)
                     case pygame.event.Event(type=constants.TITLEMENU):
@@ -828,13 +836,14 @@ class Game:
                 continue
             self.screen.update(timedelta)
             self.screen.draw(self.display)
+            self.debug_draw(self.display, [f'FPS: {pg_clock.get_fps():.2f}'])
             pygame.display.update()
             if next(DEBUG_CYCLE):
-                ic(pg_clock.get_fps())
+                pass
 
         # All checkes made, clean up and exit.
         pygame.quit()
-        log.info('PPoD End %s', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        log.info('PPoD End %s', datetime.datetime.utc_now().strftime('%Y-%m-%d %H:%M:%S'))
         sys.exit()
 
 
