@@ -62,7 +62,7 @@ POLAR_45_TO_FACING = {
 
 
 def rotated_8xarray(image):
-    """Return tuple of image (facing up) rotated in eight facings (u, r, d, l, ur, dr, dl, ul."""
+    """Return tuple of image (facing up) rotated in eight facings (u, r, d, l, ur, dr, dl, ul)."""
     return (
         # up, right, down, left
         image.convert_alpha(),
@@ -77,6 +77,50 @@ def rotated_8xarray(image):
     )
 
 
+class Timer:
+    def __init__(self, duration):
+        """Returns True approximately every self.duration milliseconds.
+
+        If duration is an iterable, it will cycle through the values. Example:
+        itertools.cycle((1000, 80)) will return True every 1000ms, then 80ms,
+        then 1000ms, etc.
+
+        @param duration: milliseconds or an iterable.
+        """
+        if isinstance(duration, int | float):
+            duration = itertools.repeat(duration)
+        self.duration = duration
+        self.timer = next(self.duration)
+
+    def __call__(self, timedelta):
+        self.timer -= timedelta
+        if self.timer <= 0:
+            self.timer += next(self.duration)
+            return True
+        return False
+
+
+class Animation(Timer):
+    def __init__(self, duration, images):
+        """Returns next image in images every duration milliseconds."""
+        super().__init__(duration)
+        self._orig_images = images
+        self._images = iter(self._orig_images)
+        self.image = next(self._images)
+        self.complete = False
+
+    def __call__(self, timedelta):
+        if not self.complete and super().__call__(timedelta):
+            try:
+                self.image = next(self._images)
+            except StopIteration:
+                self.complete = True
+        return self.image
+
+    def copy(self):
+        return Animation(self.duration, self._orig_images)
+
+
 class Config:
     # 4:3 aspect ratio 400x300, 800x600, 960x720, 1024x768, 1280x960, 1400x1050, 1440x1080, 1600x1200, 1856x1392, 1920x1440, 2048x1536
     # 16:9 aspect ratio 640x360, 1024x576, 1152x648, 1280x720 (HD), 1366x768, 1600x900, 1920x1080 (FHD), 2560x1440 (QHD), 3840x2160 (4K), 7680x4320 (8K)
@@ -87,8 +131,8 @@ class Config:
     def __init__(self):
         self.resolution = 1
         self.fullscreen = False
-        self.sound = 0.2
-        self.music = 0.7
+        self.sound = 0.1
+        self.music = 0.2
 
     @property
     def music(self):
@@ -112,46 +156,6 @@ class Config:
         self.display_rect = pygame.Rect(0, 0, self.width, self.height)
 
 
-class Timer:
-    def __init__(self, duration):
-        """@param duration: milliseconds or iterable of milliseconds."""
-        if isinstance(duration, int | float):
-            duration = itertools.repeat(duration)
-        self.duration = duration
-        self.timer = 0
-
-    def __call__(self, timedelta):
-        """Returns True every milliseconds."""
-        self.timer -= timedelta
-        if self.timer <= 0:
-            self.timer += next(self.duration)
-            return True
-        return False
-
-
-class Animation(Timer):
-    def __init__(self, duration, images):
-        super().__init__(duration)
-        self._images = images
-        self.reset()
-
-    def __call__(self, timedelta):
-        if not self.complete and super().__call__(timedelta):
-            try:
-                return next(self.images)
-            except StopIteration:
-                self.complete = True
-
-    def reset(self):
-        self.complete = False
-        self.timer = 0
-        self.first = self._images[0]
-        self.images = iter(self._images)
-
-    def copy(self):
-        return Animation(self.duration, self._images)
-
-
 class PlayerSprite(pygame.sprite.Sprite):
     def __init__(self, config):
         super().__init__()
@@ -164,7 +168,7 @@ class PlayerSprite(pygame.sprite.Sprite):
         self.damping = 1 * scale  # speed slow down
         self._dx = 0
         self._dy = 0
-        self.facing = 0
+        self.facing = 0  # (u, r, d, l, ur, dr, dl, ul)
         self._facing_locked = False
         self._images = rotated_8xarray(load_image('ship.png'))
         self.image = self._images[self.facing]
@@ -245,15 +249,17 @@ class PlayerSprite(pygame.sprite.Sprite):
 
 
 class PewPewCannon:
-    def __init__(self, config, group, rof=500, life=400, speed=800):
-        """
-        @param group: sprite group to add projectiles to.
+    def __init__(self, config, bullet_group, rof=500, life=400, speed=800):
+        """Dual, fixed pew pew cannons.
+
+        @param config: Game Config object.
+        @param bullet_group: sprite group to add projectiles to.
         @param rof: rate of fire every x milliseconds.
         @param life: life of projectile in milliseconds.
         @param speed: speed of projectile in scaled pixels per ms/DELTA_DIVISOR.
         """
         scale = config.scale_factor
-        self.sprite_group = group
+        self.sprite_group = bullet_group
         self._rof = Timer(rof)
         self._damage = ('pewpew', 10)
         self._life = life
@@ -262,6 +268,7 @@ class PewPewCannon:
         self.sound.set_volume(config.sound / 2)
 
     def _pew_pew_image(self, scale):
+        """Return scaled image of pew pew, a dashed line."""
         length = 8 * scale
         width = 1 * scale
         mid = length // 2
@@ -278,40 +285,42 @@ class PewPewCannon:
 
     def _init_cannons(self, scale, speed):
         self._images = rotated_8xarray(self._pew_pew_image(scale))
+        # pewports the x,y on ship sprite pew pews are fired from, for each facing (u, r, d, l, ur, dr, dl, ul).
+        # TODO: craftily calculate with rotational maths.
         self._pewports = itertools.cycle(
             (
                 (
-                    (14 * scale, 9 * scale),
-                    (16 * scale, 14 * scale),
-                    (17 * scale, 16 * scale),
-                    (9 * scale, 14 * scale),
-                    (23 * scale, 7 * scale),
-                    (15 * scale, 7 * scale),
-                    (15 * scale, 7 * scale),
-                    (15 * scale, 7 * scale),
+                    pygame.Vector2(14 * scale, 9 * scale),
+                    pygame.Vector2(16 * scale, 14 * scale),
+                    pygame.Vector2(17 * scale, 16 * scale),
+                    pygame.Vector2(9 * scale, 14 * scale),
+                    pygame.Vector2(23 * scale, 7 * scale),
+                    pygame.Vector2(15 * scale, 7 * scale),
+                    pygame.Vector2(15 * scale, 7 * scale),
+                    pygame.Vector2(15 * scale, 7 * scale),
                 ),
                 (
-                    (17 * scale, 9 * scale),
-                    (16 * scale, 17 * scale),
-                    (14 * scale, 16 * scale),
-                    (9 * scale, 17 * scale),
-                    (25 * scale, 10 * scale),
-                    (17 * scale, 7 * scale),
-                    (17 * scale, 7 * scale),
-                    (17 * scale, 7 * scale),
+                    pygame.Vector2(17 * scale, 9 * scale),
+                    pygame.Vector2(16 * scale, 17 * scale),
+                    pygame.Vector2(14 * scale, 16 * scale),
+                    pygame.Vector2(9 * scale, 17 * scale),
+                    pygame.Vector2(25 * scale, 10 * scale),
+                    pygame.Vector2(17 * scale, 7 * scale),
+                    pygame.Vector2(17 * scale, 7 * scale),
+                    pygame.Vector2(17 * scale, 7 * scale),
                 ),
             ),
         )
         speed *= scale  # of projectile
-        self._dv = [  # dx, dy of projectile for each facing
-            (0, -1 * speed),
-            (1 * speed, 0),
-            (0, 1 * speed),
-            (-1 * speed, 0),
-            (1 * speed, -1 * speed),
-            (1 * speed, 1 * speed),
-            (-1 * speed, 1 * speed),
-            (-1 * speed, -1 * speed),
+        self._velocity = [  # intial velocity of projectile for each facing (u, r, d, l, ur, dr, dl, ul)
+            pygame.Vector2(0, -1 * speed),
+            pygame.Vector2(1 * speed, 0),
+            pygame.Vector2(0, 1 * speed),
+            pygame.Vector2(-1 * speed, 0),
+            pygame.Vector2(1 * speed, -1 * speed),
+            pygame.Vector2(1 * speed, 1 * speed),
+            pygame.Vector2(-1 * speed, 1 * speed),
+            pygame.Vector2(-1 * speed, -1 * speed),
         ]
 
     def fire(self, timedelta, ship_rect, facing, baddies):
@@ -323,23 +332,24 @@ class PewPewCannon:
         @param baddies: sprite group of baddies.
         """
         if self._rof(timedelta):
-            px, py = next(self._pewports)[facing]
-            image = self._images[facing]
-            rect = self.rect.move(ship_rect.x + px, ship_rect.y + py)  # returns new Rect()
-            p = PewPew(*self._dv[facing], image, rect, self._life, self._damage)
-            self.sprite_group.add(p)
+            self.sprite_group.add(PewPew(
+                self._velocity[facing],
+                self._images[facing],
+                self.rect.move(ship_rect.topleft + next(self._pewports)[facing]),
+                self._life,
+                self._damage))
             self.sound.play(0, 0, 10)
 
 
 class PewPewTurret(PewPewCannon):
     def __init__(self, config, group, rof=itertools.cycle((1000, 80)), life=400, speed=800, rotation=360):
+        """Rotating turret pew pew cannon."""
         super().__init__(config, group, rof, life, speed)
         self._rotation = rotation
 
     def _init_cannons(self, scale, speed):
         self._images = rotated_8xarray(self._pew_pew_image(scale))
-        speed *= scale  # of projectile
-        self.speed = speed
+        self.speed = speed * scale  # of projectile
 
     def fire(self, timedelta, ship_rect, facing, baddies):
         if self._rof(timedelta):
@@ -353,13 +363,13 @@ class PewPewTurret(PewPewCannon):
                 if distance < closest_distance:
                     closest_distance = distance
                     closest_target = target
-            dv = (closest_target - cannon).normalize() * self.speed
-            po = dv.as_polar()[1] + 180
-            # ic(angle, cannon, dv, po, closest_distance)
+            velocity = (closest_target - cannon).normalize() * self.speed
+            po = velocity.as_polar()[1] + 180
+            # ic(angle, cannon, velocity, po, closest_distance)
             image = self._images[ANGLE_45_TO_FACING[po // 45]]
             rect = image.get_rect()
             rect.center = ship_rect.center
-            p = PewPew(*dv.xy, image, rect, self._life, self._damage)
+            p = PewPew(velocity.xy, image, rect, self._life, self._damage)
             self.sprite_group.add(p)
             self.sound.play(0, 0, 10)
 
@@ -367,10 +377,9 @@ class PewPewTurret(PewPewCannon):
 class PewPew(pygame.sprite.Sprite):
     """Projectiles do not take damage, are destroyed on collision."""
 
-    def __init__(self, dx, dy, image, rect, life, damage):
+    def __init__(self, velocity, image, rect, life, damage):
         super().__init__()
-        self.dx = dx
-        self.dy = dy
+        self.velocity = velocity
         self.rect = rect
         self.image = image
         self.life = life
@@ -381,8 +390,8 @@ class PewPew(pygame.sprite.Sprite):
         if self.life < 0:
             self.kill()
             return
-        self.rect.x += (self.dx * timedelta) / DELTA_DIVISOR
-        self.rect.y += (self.dy * timedelta) / DELTA_DIVISOR
+        self.rect.x += (self.velocity.x * timedelta) / DELTA_DIVISOR
+        self.rect.y += (self.velocity.y * timedelta) / DELTA_DIVISOR
 
     def impact(self, target):
         """If target takes/absorbs damage, kill."""
@@ -392,10 +401,11 @@ class PewPew(pygame.sprite.Sprite):
 
 class StaticAnimation(pygame.sprite.Sprite):
     def __init__(self, group, animation, x, y):
+        """Animation that stays in fixed x,y position until complete."""
         super().__init__()
         self.add(group)
         self.animation = animation
-        self.image = animation.first
+        self.image = animation.image
         self.rect = self.image.get_frect()
         self.rect.center = (x, y)
 
@@ -403,8 +413,7 @@ class StaticAnimation(pygame.sprite.Sprite):
         if self.animation.complete:
             self.kill()
             return
-        if image := self.animation(timedelta):
-            self.image = image
+        self.image = self.animation(timedelta)
 
 
 class BawlerSpawner:
@@ -424,26 +433,25 @@ class BawlerSpawner:
     def _make_variations(self, scale):
         variations = list()
         explosion = lambda x, y: StaticAnimation(self.explosion_group, self.explosion_animation.copy(), x, y)
-        for power in (4, 4, 6, 6, 8):
-            health = power // 4
-            damage = ('impact', power // 2)
-            radius = power * scale
-            dx = dy = abs((10 - radius) // 2) * 10 * scale
+        for _power in (4, 4, 6, 6, 8):
+            radius = _power * scale
+            v = abs((10 - radius) // 2) * 10 * scale
             image = pygame.Surface((radius * 2, radius * 2), flags=pygame.SRCALPHA).convert_alpha()
-            rect = image.get_rect()
-            pygame.draw.circle(image, (220, 0, 0), rect.center, radius)
-            pygame.draw.circle(image, (200, 100, 0), rect.center, radius, width=1 * scale)
-            variations.append((dx, dy, image, (explosion, self.explosion_sound), health, damage, radius))
+            _rect = image.get_rect()
+            pygame.draw.circle(image, (220, 0, 0), _rect.center, radius)
+            pygame.draw.circle(image, (200, 100, 0), _rect.center, radius, width=1 * scale)
+            health = _power // 4
+            damage = ('impact', _power // 2)
+            variations.append((pygame.Vector2(v, v), image, (explosion, self.explosion_sound), health, damage, radius))
         return tuple(variations)
 
 
 class Bawler(pygame.sprite.Sprite):
     seq = itertools.count(1)
 
-    def __init__(self, x, y, dx, dy, image, death, health, damage, radius):
+    def __init__(self, x, y, velocity, image, death, health, damage, radius):
         super().__init__()
-        self._dx = dx
-        self._dy = dy
+        self.velocity = velocity
         self.image = image
         self.death_animation, self.death_sound = death
         self.health = health
@@ -473,29 +481,29 @@ class Bawler(pygame.sprite.Sprite):
     def update(self, timedelta, target):
         tx, ty = target.rect.center
         x, y = self.rect.center
-        self._dx += random.randint(*self.wiggle)
-        self._dy += random.randint(*self.wiggle)
+        self.velocity.x += random.randint(*self.wiggle)
+        self.velocity.y += random.randint(*self.wiggle)
         if x < tx:
-            x += (self._dx * timedelta) / DELTA_DIVISOR
+            x += (self.velocity.x * timedelta) / DELTA_DIVISOR
         elif x > tx:
-            x -= (self._dx * timedelta) / DELTA_DIVISOR
+            x -= (self.velocity.x * timedelta) / DELTA_DIVISOR
         if y < ty:
-            y += (self._dy * timedelta) / DELTA_DIVISOR
+            y += (self.velocity.y * timedelta) / DELTA_DIVISOR
         elif y > ty:
-            y -= (self._dy * timedelta) / DELTA_DIVISOR
+            y -= (self.velocity.y * timedelta) / DELTA_DIVISOR
         self.rect.center = x, y
         if self.rect.bottom > self.bounds.bottom:
             self.rect.bottom = self.bounds.bottom
-            self._dy = -self._dy
+            self.velocity.y = -self.velocity.y
         if self.rect.top < self.bounds.top:
             self.rect.top = self.bounds.top
-            self._dy = -self._dy
+            self.velocity.y = -self.velocity.y
         if self.rect.right > self.bounds.right:
             self.rect.right = self.bounds.right
-            self._dx = -self._dx
+            self.velocity.x = -self.velocity.x
         if self.rect.left < self.bounds.left:
             self.rect.left = self.bounds.left
-            self._dx = -self._dx
+            self.velocity.x = -self.velocity.x
 
 
 class BoundsSpawner:
@@ -738,7 +746,7 @@ class GameplayScreen:
 
 class Game:
     def __init__(self, config):
-        log.info('PPoD Start %s', datetime.datetime.utc_now().strftime('%Y-%m-%d %H:%M:%S'))
+        log.info('PPoD Start %s', datetime.datetime.now(tz=datetime.UTC).strftime('%Y-%m-%d %H:%M:%S'))
         self.config = config
         self._debug_font = pygame.font.Font(None, 16 * config.scale_factor)
 
