@@ -6,8 +6,9 @@ import pathlib
 import random
 import sys
 
-import constants
 import pygame
+
+import constants
 
 # TODO:
 # current score in top right
@@ -164,7 +165,7 @@ class PlayerSprite(pygame.sprite.Sprite):
         self.weapons = list()
         self.health = 100
         self.speed = 200 * scale  # max velocity
-        self.accel = 3 * scale  # accelleration
+        self.accel = 3 * scale  # acceleration
         self.damping = 1 * scale  # speed slow down
         self._dx = 0
         self._dy = 0
@@ -312,7 +313,7 @@ class PewPewCannon:
             ),
         )
         speed *= scale  # of projectile
-        self._velocity = [  # intial velocity of projectile for each facing (u, r, d, l, ur, dr, dl, ul)
+        self._velocity = [  # initial velocity of projectile for each facing (u, r, d, l, ur, dr, dl, ul)
             pygame.Vector2(0, -1 * speed),
             pygame.Vector2(1 * speed, 0),
             pygame.Vector2(0, 1 * speed),
@@ -560,17 +561,17 @@ class BufferBoundsSpawner(BoundsSpawner):
 
 
 class TimedSpawn:
-    def __init__(self, spawner, every_ms, imediate=True, cycle=0):
+    def __init__(self, spawner, every_ms, immediate=True, cycle=0):
         """Spawn at timed intervals.
 
         @param spawner: function that returns an iterable of sprites to spawn.
         @param every_ms: milliseconds between spawns.
-        @param imediate: spawn first group immediately.
+        @param immediate: spawn first group immediately.
         @param cycle: number of times to spawn, 0 is infinite.
         """
         self.spawner = spawner
         self.every_ms = every_ms
-        self.timer = 0 if imediate else every_ms
+        self.timer = 0 if immediate else every_ms
 
     def update(self, timedelta):
         """Iterable of the spawned."""
@@ -849,7 +850,7 @@ class Game:
             if next(DEBUG_CYCLE):
                 pass
 
-        # All checkes made, clean up and exit.
+        # All checks made, clean up and exit.
         pygame.quit()
         log.info('PPoD End %s', datetime.datetime.utc_now().strftime('%Y-%m-%d %H:%M:%S'))
         sys.exit()
