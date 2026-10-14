@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import datetime
+import datetime as dt
 import itertools
 import logging
 import pathlib
@@ -747,7 +747,7 @@ class GameplayScreen:
 
 class Game:
     def __init__(self, config):
-        log.info('PPoD Start %s', datetime.datetime.now(tz=datetime.UTC).strftime('%Y-%m-%d %H:%M:%S'))
+        log.info('PPoD Start %s', dt.datetime.now(tz=dt.UTC).strftime('%Y-%m-%d %H:%M:%S'))
         self.config = config
         self._debug_font = pygame.font.Font(None, 16 * config.scale_factor)
 
@@ -852,7 +852,7 @@ class Game:
 
         # All checks made, clean up and exit.
         pygame.quit()
-        log.info('PPoD End %s', datetime.datetime.utc_now().strftime('%Y-%m-%d %H:%M:%S'))
+        log.info('PPoD End %s', dt.datetime.utc_now().strftime('%Y-%m-%d %H:%M:%S'))
         sys.exit()
 
 
