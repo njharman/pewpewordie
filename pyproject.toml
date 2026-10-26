@@ -6,7 +6,7 @@ readme = "README.rst"
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
 authors = [{ name = "Norman J. Harman Jr.", email = "njharman@gmail.com" }]
-requires-python = ">=3.14"
+requires-python = ">=3.15"
 dependencies = [
   "pygame-ce",
   # "pygbag", # run in browser
