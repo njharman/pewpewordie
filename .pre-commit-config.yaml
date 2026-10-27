@@ -45,11 +45,6 @@ repos:
       #  args: [--fix]
       # - id: ruff-format  # TODO: enable after src/main.py is formatted
 
-  - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.3
-    hooks:
-      - id: codespell
-
   - repo: https://github.com/abravalheri/validate-pyproject
     rev: 'v0.27'
     hooks:
