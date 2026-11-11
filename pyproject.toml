@@ -6,7 +6,7 @@ readme = "README.rst"
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
 authors = [{ name = "Norman J. Harman Jr.", email = "njharman@gmail.com" }]
-requires-python = ">=3.14"
+requires-python = ">=3.15"
 dependencies = [
   "pygame-ce",
   # "pygbag", # run in browser
@@ -16,9 +16,9 @@ dependencies = [
 dev = [
   "icecream",
   "pre-commit>=4",
-  "pytest>=8",
-  "pytest-cov>=6",
-  "ruff>=0.15",
+  "pytest>=9",
+  "pytest-cov>=7",
+  "ruff>=0.17",
 ]
 
 [tool.pytest.ini_options]
