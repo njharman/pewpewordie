@@ -13,14 +13,26 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.14"]
+        python-version: ["3.15"]
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@v10.2.0
+      - uses: astral-sh/setup-uv@v10.3.2
         with:
           python-version: ${{ matrix.python-version }}
       - run: uv sync --locked
       - run: uv run ruff check .
       # - run: uv run pytest  # enable once tests/ exists
+
+  licenses:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v10.3.2
+      - run: uv sync --locked --no-dev
+      - run: >-
+          uvx pip-licenses --python .venv/bin/python --partial-match
+          --allow-only "MIT;BSD;Apache;ISC;PSF;Python Software Foundation;MPL;Unlicense;GNU Library or Lesser General Public License (LGPL)"

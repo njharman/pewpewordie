@@ -8,3 +8,19 @@ examples/
 
 # uv
 .venv
+dist/
+*.py[cod]
+
+# Unit test / coverage reports
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Tool caches (normally kept out of the tree by dropbox-churn env vars)
+.ruff_cache/
+
+# Editors
+*.swp
+*~
