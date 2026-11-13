@@ -21,6 +21,7 @@ repos:
       - id: end-of-file-fixer
       - id: mixed-line-ending
       - id: name-tests-test
+        args: [--django]  # test_*.py naming
       - id: trailing-whitespace
 
   - repo: https://github.com/pre-commit/pygrep-hooks
@@ -33,17 +34,17 @@ repos:
       - id: rst-inline-touching-normal
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.13.6
+    rev: 0.13.8
     hooks:
       - id: uv-lock
       - id: uv-audit
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.17.3
+    rev: v0.17.5
     hooks:
       - id: ruff-check
-      #  args: [--fix]
-      # - id: ruff-format  # TODO: enable after src/main.py is formatted
+      # args: [--fix]
+      - id: ruff-format
 
   - repo: https://github.com/abravalheri/validate-pyproject
     rev: 'v0.27'
@@ -57,6 +58,6 @@ repos:
       - id: check-github-workflows
 
   - repo: https://github.com/zizmorcore/zizmor-pre-commit
-    rev: v1.31.1
+    rev: v1.32.0
     hooks:
       - id: zizmor

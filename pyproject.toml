@@ -12,6 +12,11 @@ dependencies = [
   # "pygbag", # run in browser
 ]
 
+[project.urls]
+Homepage = "https://github.com/njharman/pewpewordie"
+Repository = "https://github.com/njharman/pewpewordie"
+Issues = "https://github.com/njharman/pewpewordie/issues"
+
 [dependency-groups]
 dev = [
   "icecream",
@@ -38,7 +43,34 @@ extend-immutable-calls = [
 [tool.ruff.format]
 quote-style = "single"
 
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = [
+  "F401", # re-exports
+]
+"tests/**" = [
+  "S101", # assert is how pytest works
+  "S108", # temp paths in tests
+  "SLF001", # tests may poke private members
+  "T201", # print in tests is fine
+]
+
 [tool.ruff.lint]
+ignore = [
+  "C408", # dict()/list() calls are fine
+  "COM812", # conflicts with the formatter
+  "COM819", # trailing commas are fine
+  "E501", # line length is the formatter's job
+  "E731", # lambda assignment is fine
+  "ERA001", # commented-out code is lax during development
+  "G004", # f-strings in logging calls are fine
+  "RET503", # implicit return None is fine
+  "RUF012", # fix wants typing.ClassVar annotation; no type hints
+  "S311", # random used for game, not crypto
+  "SIM108", # ternaries allowed, not required
+  "SIM300", # yoda conditions are fine
+  "T201", # print is lax during development
+  "TRY003", # long messages at raise site are fine
+]
 select = [
   "A", # flake8-builtins
   "ASYNC", # flake8-async
@@ -96,31 +128,4 @@ select = [
   "UP", # pyupgrade: drop syntax obsolete for target-version
   "W", # pycodestyle warnings
   "YTT", # sys.version misuse
-]
-ignore = [
-  "C408", # dict()/list() calls are fine
-  "COM812", # conflicts with the formatter
-  "COM819", # trailing commas are fine
-  "E501", # line length is the formatter's job
-  "E731", # lambda assignment is fine
-  "ERA001", # commented-out code is lax during development
-  "G004", # f-strings in logging calls are fine
-  "RET503", # implicit return None is fine
-  "RUF012", # fix wants typing.ClassVar annotation; no type hints
-  "S311", # random used for game, not crypto
-  "SIM108", # ternaries allowed, not required
-  "SIM300", # yoda conditions are fine
-  "T201", # print is lax during development
-  "TRY003", # long messages at raise site are fine
-]
-
-[tool.ruff.lint.per-file-ignores]
-"__init__.py" = [
-  "F401", # re-exports
-]
-"tests/**" = [
-  "S101", # assert is how pytest works
-  "S108", # temp paths in tests
-  "SLF001", # tests may poke private members
-  "T201", # print in tests is fine
 ]

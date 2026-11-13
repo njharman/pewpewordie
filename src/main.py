@@ -125,8 +125,8 @@ class Animation(Timer):
 class Config:
     # 4:3 aspect ratio 400x300, 800x600, 960x720, 1024x768, 1280x960, 1400x1050, 1440x1080, 1600x1200, 1856x1392, 1920x1440, 2048x1536
     # 16:9 aspect ratio 640x360, 1024x576, 1152x648, 1280x720 (HD), 1366x768, 1600x900, 1920x1080 (FHD), 2560x1440 (QHD), 3840x2160 (4K), 7680x4320 (8K)
-    #SIZES = [(640, 360, 1), (1280, 720, 2), (1920, 1080, 3), (3840, 2160, 6)]
-    #SIZES = [(960, 720, 1), (1920, 1440, 2)]
+    # SIZES = [(640, 360, 1), (1280, 720, 2), (1920, 1080, 3), (3840, 2160, 6)]
+    # SIZES = [(960, 720, 1), (1920, 1440, 2)]
     SIZES = [(640, 480, 1), (1280, 960, 2), (1920, 1440, 3)]
 
     def __init__(self):
@@ -333,12 +333,7 @@ class PewPewCannon:
         @param baddies: sprite group of baddies.
         """
         if self._rof(timedelta):
-            self.sprite_group.add(PewPew(
-                self._velocity[facing],
-                self._images[facing],
-                self.rect.move(ship_rect.topleft + next(self._pewports)[facing]),
-                self._life,
-                self._damage))
+            self.sprite_group.add(PewPew(self._velocity[facing], self._images[facing], self.rect.move(ship_rect.topleft + next(self._pewports)[facing]), self._life, self._damage))
             self.sound.play(0, 0, 10)
 
 
@@ -610,7 +605,7 @@ class TitleScreen(BaseScreen):
         super().__init__(config)
         pygame.mixer.music.load(ASSETS_PATH / 'music' / 'title_song.mp3')
         background = load_image('titlescreen.jpg', scaled=False)
-        background = pygame.transform.scale_by(background, config.height/background.get_height())
+        background = pygame.transform.scale_by(background, config.height / background.get_height())
         self.sprites.add(CenteredBackgroundSprite(config.display_rect, background))
         self.sprites.add(CenteredBackgroundSprite(config.display_rect, make_menu((('Start', 's'), ('Quit PPoD', 'q'), ('High Scores', 'h')), 160, 100, bg=(0, 0, 0, 0))))
         self.black = pygame.Surface(config.resolution, flags=pygame.SRCALPHA)
